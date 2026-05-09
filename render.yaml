@@ -3,7 +3,7 @@ services:
   - type: web
     name: avocat-dz
     env: node
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
