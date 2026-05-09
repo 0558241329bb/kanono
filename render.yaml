@@ -1,0 +1,17 @@
+# Blueprint Render: بناء Vite ثم تشغيل server.js (واجهة + /api + Socket.io على نفس الخدمة)
+services:
+  - type: web
+    name: avocat-dz
+    env: node
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: "true"
+      - key: APP_URL
+        value: https://kanono-u1wb.onrender.com
+      - key: VITE_API_URL
+        value: https://kanono-u1wb.onrender.com
+      # عيّن في لوحة Render (Secrets): DATABASE_URL، JWT_SECRET، وGEMINI_API_KEY إن استُخدمت

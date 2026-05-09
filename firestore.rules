@@ -1,0 +1,162 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'username', 'role', 'created_at'])
+        && data.size() >= 4 && data.size() <= 7 
+        && data.email is string && data.email.size() <= 128
+        && data.username is string && data.username.size() <= 64
+        && data.role in ['client', 'lawyer']
+        && data.created_at == request.time;
+    }
+
+    function isValidUserUpdate(data) {
+      return data.email is string && data.email.size() <= 128
+        && data.username is string && data.username.size() <= 64
+        && data.role in ['client', 'lawyer'];
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserUpdate(incoming())
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'profile_picture', 'phone', 'city', 'lawyer_profile'])
+                    && incoming().role == existing().role
+                    && incoming().email == existing().email
+                    && incoming().created_at == existing().created_at;
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && isValidId(conversationId) && 
+                  (resource.data.client_id == request.auth.uid || resource.data.lawyer_id == request.auth.uid);
+                  
+      allow list: if isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.lawyer_id == request.auth.uid);
+
+      allow create: if isSignedIn() && isValidId(conversationId)
+                    && incoming().keys().hasAll(['client_id', 'lawyer_id', 'created_at', 'updated_at'])
+                    && (incoming().client_id == request.auth.uid || incoming().lawyer_id == request.auth.uid)
+                    && incoming().created_at == request.time
+                    && incoming().updated_at == request.time
+                    && exists(/databases/$(database)/documents/users/$(incoming().client_id))
+                    && exists(/databases/$(database)/documents/users/$(incoming().lawyer_id));
+                    
+      allow update: if isSignedIn() && isValidId(conversationId)
+                    && (existing().client_id == request.auth.uid || existing().lawyer_id == request.auth.uid)
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['last_message', 'updated_at'])
+                    && incoming().updated_at == request.time
+                    && incoming().client_id == existing().client_id
+                    && incoming().lawyer_id == existing().lawyer_id;
+                    
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && isValidId(conversationId) && isValidId(messageId)
+                    && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                     || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+                     
+        allow list: if isSignedIn() && isValidId(conversationId)
+                    && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                     || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+
+        allow create: if isSignedIn() && isValidId(conversationId) && isValidId(messageId)
+                      && incoming().keys().hasAll(['conversation_id', 'sender_id', 'content', 'is_read', 'created_at'])
+                      && incoming().conversation_id == conversationId
+                      && incoming().sender_id == request.auth.uid
+                      && incoming().content is string && incoming().content.size() > 0 && incoming().content.size() <= 1024
+                      && incoming().is_read == false
+                      && incoming().created_at == request.time
+                      && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                       || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+
+        allow update: if isSignedIn() && isValidId(conversationId) && isValidId(messageId)
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['is_read'])
+                      && incoming().is_read == true
+                      && existing().sender_id != request.auth.uid
+                      && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                       || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+      }
+      
+      match /typing/{userId} {
+        allow read: if isSignedIn() && isValidId(conversationId) && isValidId(userId)
+                    && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                     || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+                     
+        allow write: if isOwner(userId) && isValidId(conversationId) && isValidId(userId)
+                     && incoming().keys().hasAll(['is_typing', 'updated_at'])
+                     && incoming().is_typing is bool
+                     && incoming().updated_at == request.time
+                     && (get(/databases/$(database)/documents/conversations/$(conversationId)).data.client_id == request.auth.uid 
+                      || get(/databases/$(database)/documents/conversations/$(conversationId)).data.lawyer_id == request.auth.uid);
+      }
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn() && isValidId(appointmentId) &&
+                  (resource.data.client_id == request.auth.uid || resource.data.lawyer_id == request.auth.uid);
+                  
+      allow list: if isSignedIn() && (resource.data.client_id == request.auth.uid || resource.data.lawyer_id == request.auth.uid);
+
+      allow create: if isSignedIn() && isValidId(appointmentId)
+                    && incoming().keys().hasAll(['client_id', 'lawyer_id', 'type', 'requested_date', 'status', 'created_at', 'updated_at'])
+                    && incoming().client_id == request.auth.uid
+                    && incoming().type in ['appointment', 'consultation']
+                    && incoming().requested_date is string && incoming().requested_date.size() <= 32
+                    && incoming().status == 'pending'
+                    && incoming().created_at == request.time
+                    && incoming().updated_at == request.time
+                    && exists(/databases/$(database)/documents/users/$(incoming().lawyer_id));
+
+      allow update: if (
+        isSignedIn() && isValidId(appointmentId) &&
+        (
+          (
+            existing().client_id == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at'])
+            && incoming().status == 'cancelled'
+            && existing().status in ['pending', 'accepted']
+            && incoming().updated_at == request.time
+          ) ||
+          (
+            existing().lawyer_id == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'confirmed_date', 'updated_at'])
+            && incoming().status == 'accepted'
+            && existing().status == 'pending'
+            && incoming().updated_at == request.time
+          ) ||
+          (
+            existing().lawyer_id == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'cancellation_reason', 'updated_at'])
+            && incoming().status == 'rejected'
+            && existing().status == 'pending'
+            && incoming().updated_at == request.time
+          ) ||
+          (
+            existing().lawyer_id == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at'])
+            && incoming().status == 'completed'
+            && existing().status == 'accepted'
+            && incoming().updated_at == request.time
+          )
+        )
+      );
+    }
+    
+    match /complaints/{complaintId} {
+      allow create: if isSignedIn() && isValidId(complaintId)
+                    && incoming().keys().hasAll(['user_id', 'subject', 'description', 'status', 'created_at'])
+                    && incoming().user_id == request.auth.uid
+                    && incoming().subject is string && incoming().subject.size() <= 200
+                    && incoming().description is string && incoming().description.size() <= 2048
+                    && incoming().status == 'open'
+                    && incoming().created_at == request.time;
+    }
+  }
+}

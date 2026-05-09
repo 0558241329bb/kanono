@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "lawyer"] },
+        "profile_picture": { "type": "string" },
+        "phone": { "type": "string" },
+        "city": { "type": "string" },
+        "lawyer_profile": {
+          "type": "object",
+          "properties": {
+            "specialty": { "type": "string" },
+            "years_experience": { "type": "number" },
+            "bio": { "type": "string" },
+            "bar_number": { "type": "string" },
+            "rating": { "type": "number" },
+            "completed_appointments": { "type": "number" }
+          }
+        },
+        "created_at": { "type": "string" }
+      },
+      "required": ["email", "username", "role", "created_at"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "A chat conversation between a client and a lawyer",
+      "type": "object",
+      "properties": {
+        "client_id": { "type": "string" },
+        "lawyer_id": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "last_message": {
+          "type": "object",
+          "properties": {
+            "content": { "type": "string" },
+            "created_at": { "type": "string" },
+            "sender_id": { "type": "string" }
+          }
+        }
+      },
+      "required": ["client_id", "lawyer_id", "created_at", "updated_at"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a conversation",
+      "type": "object",
+      "properties": {
+        "conversation_id": { "type": "string" },
+        "sender_id": { "type": "string" },
+        "content": { "type": "string" },
+        "is_read": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["conversation_id", "sender_id", "content", "is_read", "created_at"]
+    },
+    "UserTypingStatus": {
+      "title": "UserTypingStatus",
+      "description": "Typing status of users in a conversation",
+      "type": "object",
+      "properties": {
+        "is_typing": { "type": "boolean" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["is_typing", "updated_at"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "A booking or consultation request",
+      "type": "object",
+      "properties": {
+        "client_id": { "type": "string" },
+        "lawyer_id": { "type": "string" },
+        "type": { "type": "string", "enum": ["appointment", "consultation"] },
+        "requested_date": { "type": "string" },
+        "confirmed_date": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "completed", "cancelled"] },
+        "cancellation_reason": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["client_id", "lawyer_id", "type", "requested_date", "status", "created_at", "updated_at"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "A user complaint or feedback",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "subject": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "subject", "description", "status", "created_at"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Store users profiles."
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "Conversation" },
+      "description": "Store chat conversations."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "Message" },
+      "description": "Store messages in a conversation."
+    },
+    "/conversations/{conversationId}/typing/{userId}": {
+       "schema": { "$ref": "UserTypingStatus" },
+       "description": "Store typing status per user."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "Appointment" },
+      "description": "Store booking requests."
+    },
+    "/complaints/{complaintId}": {
+      "schema": { "$ref": "Complaint" },
+      "description": "Store user complaints."
+    }
+  }
+}

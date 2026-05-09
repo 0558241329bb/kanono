@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "795327942220",
+    "project_id": "avocatdz-d6161",
+    "storage_bucket": "avocatdz-d6161.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795327942220:android:0409538fefc1003c7e2ee9",
+        "android_client_info": {
+          "package_name": "com.avocatdz.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "795327942220-rlnpn9l41o0afd67nofark92pv7frsib.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.avocatdz.app",
+            "certificate_hash": "eac7c3be71d6c45a3f7f32e93f23be98302927b4"
+          }
+        },
+        {
+          "client_id": "795327942220-h1qgtcic82n3fj8teedpil1mtlafmnqb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8xOc2d9dzc9PZVcJj76LpJBmOH-k5XYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "795327942220-h1qgtcic82n3fj8teedpil1mtlafmnqb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

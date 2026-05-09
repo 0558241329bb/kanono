@@ -1,0 +1,22 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Android signing (لا ترفع المفاتيح إلى GitHub)
+*.jks
+*.keystore
+android/keystore.properties
+
+# بيانات محلية
+database.sqlite
+uploads/
+
+# أرشيفات وبناءات جاهزة (استخدم GitHub Releases بدلاً من رفعها للمستودع)
+*.apk
+*.aab
+*.zip

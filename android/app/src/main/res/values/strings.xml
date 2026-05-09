@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LGS</string>
+    <string name="title_activity_main">LGS</string>
+    <string name="package_name">com.avocatdz.app</string>
+    <string name="custom_url_scheme">com.avocatdz.app</string>
+    <string name="server_client_id">698343747191-dupil8lktfaf888n3j8ip4mo4p16fos7.apps.googleusercontent.com</string>
+</resources>
