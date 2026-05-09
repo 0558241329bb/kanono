@@ -21,6 +21,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+/** بريد مُرفوع تلقائياً لدور admin عند التسجيل/الدخول. يمكن إضافة المزيد عبر ADMIN_EMAILS في البيئة (مفصولة بفواصل). */
+const BUILTIN_PROMOTED_ADMIN_EMAILS = [
+  'admin123@admin.dz',
+  'admin123@admin.com',
+  'attiabelkheiri84@gmail.com',
+];
+
+function isPromotedAdminEmail(email) {
+  const n = String(email).toLowerCase().trim();
+  if (BUILTIN_PROMOTED_ADMIN_EMAILS.includes(n)) return true;
+  const extra = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return extra.includes(n);
+}
+
 /** Full user object for client (matches login + profile fields). */
 async function getUserPayloadForClient(userId) {
   const [users] = await pool.query(
@@ -63,7 +80,9 @@ router.post('/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
-    const assignedRole = normalizedEmail === 'admin123@admin.dz' ? 'admin' : (['client', 'lawyer', 'admin'].includes(role) ? role : 'client');
+    const assignedRole = isPromotedAdminEmail(normalizedEmail)
+      ? 'admin'
+      : (['client', 'lawyer', 'admin'].includes(role) ? role : 'client');
     const approved = assignedRole === 'admin' ? 1 : (assignedRole === 'lawyer' ? 0 : 1);
 
     // Start a transaction just in case
@@ -123,7 +142,9 @@ router.post('/firebase-login', async (req, res) => {
   
       if (rows.length === 0) {
         // Create user if not exists
-        const assignedRole = normalizedEmail === 'admin123@admin.dz' ? 'admin' : (['client', 'lawyer', 'admin'].includes(role) ? role : 'client');
+        const assignedRole = isPromotedAdminEmail(normalizedEmail)
+      ? 'admin'
+      : (['client', 'lawyer', 'admin'].includes(role) ? role : 'client');
         const approved = assignedRole === 'admin' ? 1 : (assignedRole === 'lawyer' ? 0 : 1);
         
         const connection = await pool.getConnection();
@@ -150,11 +171,12 @@ router.post('/firebase-login', async (req, res) => {
         }
       } else {
         user = rows[0];
-        // Force admin role for the specific email
-        if (normalizedEmail === 'admin123@admin.dz') {
+        if (isPromotedAdminEmail(normalizedEmail)) {
           if (user.role !== 'admin' || user.approved !== 1) {
             console.log(`Upgrading ${normalizedEmail} to admin`);
-            await pool.query("UPDATE users SET role = 'admin', approved = 1 WHERE email = ?", [normalizedEmail]);
+            await pool.query("UPDATE users SET role = 'admin', approved = 1 WHERE LOWER(email) = LOWER(?)", [
+              normalizedEmail,
+            ]);
             user.role = 'admin';
             user.approved = 1;
           }
@@ -217,10 +239,12 @@ router.post('/login', async (req, res) => {
       }
   
       // Force admin role for the specific email
-      if (normalizedEmail === 'admin123@admin.dz') {
+      if (isPromotedAdminEmail(normalizedEmail)) {
         if (user.role !== 'admin' || user.approved !== 1) {
           console.log(`Upgrading ${normalizedEmail} to admin`);
-          await pool.query("UPDATE users SET role = 'admin', approved = 1 WHERE email = ?", [normalizedEmail]);
+          await pool.query("UPDATE users SET role = 'admin', approved = 1 WHERE LOWER(email) = LOWER(?)", [
+            normalizedEmail,
+          ]);
           user.role = 'admin';
           user.approved = 1;
         }
