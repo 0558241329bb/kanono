@@ -5,7 +5,7 @@ import pool from '../config/db.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
-import admin from '../config/firebaseAdmin.js';
+import { getFirebaseAdmin } from '../config/firebaseAdmin.js';
 
 const router = express.Router();
 
@@ -113,6 +113,7 @@ router.post('/firebase-login', async (req, res) => {
     if (!idToken) return res.status(400).json({ success: false, message: 'idToken is required' });
   
     try {
+      const admin = await getFirebaseAdmin();
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const { uid, email, name, picture } = decodedToken;
       const normalizedEmail = email.toLowerCase().trim();
